@@ -2,10 +2,13 @@ package interfaces;
 
 import javax.jws.WebMethod;
 import javax.jws.WebService;
+import javax.jws.soap.SOAPBinding;
 import java.util.ArrayList;
+import java.util.List;
 
 @WebService
 public interface IEntryPoint {
+
     @WebMethod
     ArrayList<String> getBrugteBogstaver(String token);
 
@@ -40,5 +43,10 @@ public interface IEntryPoint {
     void hentOrdFraDR(String token);
 
     @WebMethod
-    String validateUser(String username, String password);
+    String logOn(String username, String password);
+
+    @WebMethod
+    void logOff (String token);
+
+
 }

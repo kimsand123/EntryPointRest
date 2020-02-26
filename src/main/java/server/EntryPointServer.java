@@ -6,9 +6,9 @@ import java.rmi.RemoteException;
 
 public class EntryPointServer {
     public static void main (String[] args) throws MalformedURLException, RemoteException {
-        EntryPointImpl entryPointImpl = new EntryPointImpl();
-        System.out.println("Publicerer GalgeServer via SOAP til consol client");
-        Endpoint.publish("http://[::]:9876/galgespil", entryPointImpl);
+        EntryPointImpl entryPoint = new EntryPointImpl();
+        System.out.println("Publicerer EntryPointserver vis SOAP....\n");
+        Endpoint.publish("http://[::]:9876/entrypoint", entryPoint);
         System.out.println("EntryPointServer server is running..\n\n");
 
           /*  Javalin app = Javalin.create().start(8989);
