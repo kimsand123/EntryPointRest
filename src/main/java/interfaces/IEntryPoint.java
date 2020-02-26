@@ -2,9 +2,7 @@ package interfaces;
 
 import javax.jws.WebMethod;
 import javax.jws.WebService;
-import javax.jws.soap.SOAPBinding;
 import java.util.ArrayList;
-import java.util.List;
 
 @WebService
 public interface IEntryPoint {
@@ -47,6 +45,4 @@ public interface IEntryPoint {
 
     @WebMethod
     void logOff (String token);
-
-
 }
