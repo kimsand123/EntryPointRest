@@ -208,6 +208,8 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         if (brugteBogstaver != null) {
             ctx.json(brugteBogstaver);
         } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+
             ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /brugtebogstaver/\\033[3mvalidToken\\033[0m");
         }
     }
@@ -219,6 +221,8 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         if (ordet != null) {
             ctx.json(ordet);
         } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+
             ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /ordet/\\033[3mvalidToken\\033[0m");
         }
     }
@@ -233,6 +237,8 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         if (antal > -1) {
             ctx.json(antal);
         } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+
             ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /AntalForkerteBogstaver/\\033[3mvalidToken\\033[0m");
         }
     }
@@ -244,28 +250,63 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         if (korrekt > -1) {
             ctx.json(korrekt);
         } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+
             ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /SidsteBogstavKorrekt/\\033[3mvalidToken\\033[0m");
         }
     }
 
-    private boolean restVundet(Context ctx) {
-        return false;
+    private void restVundet(Context ctx) {
+        String token = getTokenFromCtx(ctx);
+        int vundet = erSpilletVundet(token);
+        if (vundet > -1) {
+            ctx.json(vundet);
+        } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+            ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /SidsteBogstavKorrekt/\\033[3mvalidToken\\033[0m");
+        }
     }
 
-    private boolean restTabt(Context ctx) {
-        return false;
+    private void restTabt(Context ctx) {
+        String token = getTokenFromCtx(ctx);
+        int tabt = erSpilletTabt(token);
+        if (tabt > -1) {
+            ctx.json(tabt);
+        } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+            ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /SidsteBogstavKorrekt/\\033[3mvalidToken\\033[0m");
+        }
     }
 
     private void restGaetBogstav(Context ctx) {
-
+        String token = getTokenFromCtx(ctx);
+        String letter = ctx.pathParam("letter");
+        //TODO interface til gætBogstav skal returnere om det gik godt eller dårligt med token check.
+        if (checkGamerToken(token)){
+            gætBogstav(token, letter);
+        } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+            ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /SidsteBogstavKorrekt/\\033[3mvalidToken\\033[0m");
+        }
     }
 
-    private String restLogOn(Context ctx) {
-        return null;
+    private void restLogOn(Context ctx) {
+        String username = ctx.pathParam("username");
+        String password = ctx.pathParam("password");
+        //CHECK USERNAME
+        String token = "asældkfjaæsdlkfj"; //TODO validate user
+        if(!token.equals(null)){
+            ctx.json(token);
+        } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+            ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /SidsteBogstavKorrekt/\\033[3mvalidToken\\033[0m");
+        }
     }
 
     private void restLogOff(Context ctx) {
-
+        String token = getTokenFromCtx(ctx);
+        logOff(token);
+        ctx.status(200).result("Du er logget af spillet");
     }
 
     private String getTokenFromCtx(Context ctx) {
