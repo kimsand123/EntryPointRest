@@ -20,13 +20,13 @@ public interface IEntryPoint {
     int getAntalForkerteBogstaver(String token);
 
     @WebMethod
-    boolean erSidsteBogstavKorrekt(String token);
+    int erSidsteBogstavKorrekt(String token);
 
     @WebMethod
-    boolean erSpilletVundet(String token);
+    int erSpilletVundet(String token);
 
     @WebMethod
-    boolean erSpilletTabt(String token);
+    int erSpilletTabt(String token);
 
     @WebMethod
     void nulstil(String token);

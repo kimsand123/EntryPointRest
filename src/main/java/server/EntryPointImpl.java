@@ -17,8 +17,10 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 import java.util.UUID;
 
+import static io.javalin.apibuilder.ApiBuilder.path;
+
 @WebService(endpointInterface = "interfaces.IEntryPoint")
-public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint{
+public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
 
     //Setting up the clientpart of this service.
     // Connection to the gameserver on Jacobs machine.
@@ -43,22 +45,47 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint{
 
         //Til debugging or logging, should probably write to a file instead.
         restServer.before(ctx -> {
-            System.out.println("EntryPointServer got request "+ctx.method()+" on url " +ctx.url()+ " with parameters "+ctx.queryParamMap()+ " and shape " +ctx.formParamMap());
+            System.out.println("EntryPointServer got request " + ctx.method() + " on url " + ctx.url() + " with parameters " + ctx.queryParamMap() + " and shape " + ctx.formParamMap());
+        });
+
+        restServer.get("/", ctx -> ctx.contentType("text/html; charset=utf-8")
+                .result("<html><body>Velkommen til Online-Galgeleg<br/>\n<br/>\n" +
+                        "Du skulle tage at logge ind og spille med."));
+        // Enten den her organisation
+        restServer.routes(() -> {
+            path("bogstaver", () -> {
+                restServer.get("/brugte/:token", ctx -> restBrugteBogstaver(ctx));
+                restServer.get("/antalforkerte/:token", ctx -> restAntalForkerteBogstaver(ctx));
+                restServer.get("/sidstekorrekt/:token", ctx -> restSidsteBogstavKorrekt(ctx));
+            });
+            path("ordet", () -> {
+                restServer.get("/:token",ctx -> restOrdet(ctx));
+                restServer.get("/synligt/:token", ctx -> restSynligtOrd(ctx));
+
+            });
+            path("spillet", () ->{
+               restServer.get("/vundet/:token",ctx -> restVundet(ctx));
+               restServer.get("/tabt/:token", ctx -> restTabt(ctx));
+            });
+            //Ved ikke om dem her skal stå uden for routes..
+            restServer.get("/logoff/:token", ctx -> restLogOff(ctx));
+            restServer.post("logon/:username:password", ctx-> restLogOn(ctx));
+            restServer.post("/gaet/:token:letter", ctx -> restGaetBogstav(ctx));
         });
 
 
-
-        restServer.get("/brugteBogstaver/:token",ctx -> restBrugteBogstaver(ctx));
-        restServer.get("/synligtOrd/:token", ctx -> getSynligtOrd(ctx.pathParam("token")));
-        restServer.get("/ordet/:token", ctx -> getOrdet(ctx.pathParam("token")));
-        restServer.get("/getAntalForkerteBogstaver/:token", ctx -> getAntalForkerteBogstaver(ctx.pathParam("token")));
-        restServer.get("/sidsteBogstavKorrekt/:token", ctx -> erSidsteBogstavKorrekt(ctx.pathParam("token")));
-        restServer.get("/vundet/:token",ctx -> erSpilletVundet(ctx.pathParam("token")));
-        restServer.get("/tabt/:token",ctx -> erSpilletTabt(ctx.pathParam("token")));
-        restServer.get("/logoff/:token", ctx -> logOff(ctx.pathParam("token")));
+        //Eller den her organisation
+        restServer.get("/:token/brugtebogstaver", ctx -> restBrugteBogstaver(ctx));
+        restServer.get("/:token/synligtOrd", ctx -> getSynligtOrd(ctx.pathParam("token")));
+        restServer.get("/:token/ordet", ctx -> getOrdet(ctx.pathParam("token")));
+        restServer.get("/:token/AntalForkerteBogstaver", ctx -> getAntalForkerteBogstaver(ctx.pathParam("token")));
+        restServer.get("/:token/sidsteBogstavKorrekt", ctx -> erSidsteBogstavKorrekt(ctx.pathParam("token")));
+        restServer.get("/:token/vundet", ctx -> erSpilletVundet(ctx.pathParam("token")));
+        restServer.get("/:token/tabt", ctx -> erSpilletTabt(ctx.pathParam("token")));
+        restServer.get("/:token/logoff", ctx -> logOff(ctx.pathParam("token")));
         restServer.get("/logon/:username:password", ctx -> logOn(ctx.pathParam("username"), ctx.pathParam("password")));
-        restServer.post("/gaet/:token:letter",ctx -> gætBogstav(ctx.pathParam("token"), ctx.pathParam("letter")));
-        }
+        restServer.post(":token/gaet/:letter", ctx -> gætBogstav(ctx.pathParam("token"), ctx.pathParam("letter")));
+    }
 
     //SOAP methods
     public ArrayList<String> getBrugteBogstaver(String token) {
@@ -89,25 +116,43 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint{
         return -1;
     }
 
-    public boolean erSidsteBogstavKorrekt(String token) {
+    public int erSidsteBogstavKorrekt(String token) {
         if (checkGamerToken(token)) {
-            return spil.erSidsteBogstavKorrekt();
-        }
-        return false;
+            boolean janej;
+            janej = spil.erSidsteBogstavKorrekt();
+            if (janej) {
+                return 1;
+            } else {
+                return 0;
+            }
+        } else
+            return -1;
     }
 
-    public boolean erSpilletVundet(String token) {
+    public int erSpilletVundet(String token) {
         if (checkGamerToken(token)) {
-            return spil.erSpilletVundet();
+            boolean janej;
+            janej = spil.erSpilletVundet();
+            if (janej) {
+                return 1;
+            } else {
+                return 0;
+            }
         }
-        return false;
+        return -1;
     }
 
-    public boolean erSpilletTabt(String token) {
+    public int erSpilletTabt(String token) {
         if (checkGamerToken(token)) {
-            return spil.erSpilletTabt();
+            boolean janej;
+            janej = spil.erSpilletTabt();
+            if (janej) {
+                return 1;
+            } else {
+                return 0;
+            }
         }
-        return false;
+        return -1;
     }
 
     public void nulstil(String token) {
@@ -160,9 +205,9 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint{
         String token = getTokenFromCtx(ctx);
         List<String> brugteBogstaver;
         brugteBogstaver = getBrugteBogstaver(token);
-        if (brugteBogstaver!=null) {
+        if (brugteBogstaver != null) {
             ctx.json(brugteBogstaver);
-        }else{
+        } else {
             ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /brugtebogstaver/\\033[3mvalidToken\\033[0m");
         }
     }
@@ -171,11 +216,15 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint{
         String token = getTokenFromCtx(ctx);
         String ordet;
         ordet = getOrdet(token);
-        if (ordet!=null){
+        if (ordet != null) {
             ctx.json(ordet);
-        } else{
+        } else {
             ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /ordet/\\033[3mvalidToken\\033[0m");
         }
+    }
+
+    private void restSynligtOrd(Context ctx) {
+
     }
 
     private void restAntalForkerteBogstaver(Context ctx) {
@@ -188,8 +237,15 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint{
         }
     }
 
-    private boolean restSidsteBogstavKorrekt(Context ctx) {
-        return false;
+    private void restSidsteBogstavKorrekt(Context ctx) {
+        String token = getTokenFromCtx(ctx);
+        int korrekt = erSidsteBogstavKorrekt(token);
+        //TODO clients skal håndtere en int -1=ikke valideret, 0=falsk, 1=true
+        if (korrekt > -1) {
+            ctx.json(korrekt);
+        } else {
+            ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /SidsteBogstavKorrekt/\\033[3mvalidToken\\033[0m");
+        }
     }
 
     private boolean restVundet(Context ctx) {
@@ -204,7 +260,7 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint{
 
     }
 
-    private String estLogOn(Context ctx) {
+    private String restLogOn(Context ctx) {
         return null;
     }
 
@@ -212,7 +268,7 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint{
 
     }
 
-    private String getTokenFromCtx(Context ctx){
+    private String getTokenFromCtx(Context ctx) {
         return ctx.pathParam("token");
     }
 }
