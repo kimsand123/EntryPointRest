@@ -1,10 +1,15 @@
 package server;
 
+import com.mashape.unirest.http.HttpResponse;
+import com.mashape.unirest.http.JsonNode;
+import com.mashape.unirest.http.Unirest;
+import com.mashape.unirest.http.exceptions.UnirestException;
 import interfaces.IEntryPoint;
 import interfaces.IGalgeLogik;
 
 import io.javalin.Javalin;
 import io.javalin.http.Context;
+import org.json.JSONObject;
 
 import javax.jws.WebService;
 import javax.xml.namespace.QName;
@@ -16,6 +21,8 @@ import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 import java.util.UUID;
+
+
 
 import static io.javalin.apibuilder.ApiBuilder.path;
 
@@ -290,11 +297,19 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         }
     }
 
-    private void restLogOn(Context ctx) {
+    private void restLogOn(Context ctx) throws UnirestException {
         String username = ctx.pathParam("username");
         String password = ctx.pathParam("password");
-        //CHECK USERNAME
-        String token = "asældkfjaæsdlkfj"; //TODO validate user
+
+        String url = "http://127.0.0.1/login";
+        HttpResponse<JsonNode> response = Unirest.get(url)
+                .routeParam("username",username) //routeParam because its a get Request
+                .routeParam("password", password)
+                .asJson();
+        JSONObject json = response.getBody().getObject();
+
+        String token = json.getString("token"); //TODO validate user
+
         if(!token.equals(null)){
             ctx.json(token);
         } else {
