@@ -301,7 +301,7 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         String username = ctx.pathParam("username");
         String password = ctx.pathParam("password");
 
-        String url = "http://127.0.0.1/login";
+        String url = "http://130.225.170.204:8970/login";
         HttpResponse<JsonNode> response = Unirest.get(url)
                 .routeParam("username",username) //routeParam because its a get Request
                 .routeParam("password", password)
