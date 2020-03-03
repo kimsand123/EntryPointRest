@@ -1,5 +1,7 @@
 package interfaces;
 
+import com.mashape.unirest.http.exceptions.UnirestException;
+
 import javax.jws.WebMethod;
 import javax.jws.WebService;
 import java.util.ArrayList;
@@ -8,41 +10,41 @@ import java.util.ArrayList;
 public interface IEntryPoint {
 
     @WebMethod
-    ArrayList<String> getBrugteBogstaver(String token);
+    ArrayList<String> epGetBrugteBogstaver(String token);
 
     @WebMethod
-    String getSynligtOrd(String token);
+    String epGetSynligtOrd(String token);
 
     @WebMethod
-    String getOrdet(String token);
+    String epGetOrdet(String token);
 
     @WebMethod
-    int getAntalForkerteBogstaver(String token);
+    int epGetAntalForkerteBogstaver(String token);
 
     @WebMethod
-    int erSidsteBogstavKorrekt(String token);
+    int epErSidsteBogstavKorrekt(String token);
 
     @WebMethod
-    int erSpilletVundet(String token);
+    int epErSpilletVundet(String token);
 
     @WebMethod
-    int erSpilletTabt(String token);
+    int epErSpilletTabt(String token);
 
     @WebMethod
-    void nulstil(String token);
+    void epNulstil(String token);
 
     @WebMethod
-    void gætBogstav(String token, String bogstav);
+    void epGætBogstav(String token, String bogstav);
+
+  /*  @WebMethod
+    void epLogStatus(String token);
 
     @WebMethod
-    void logStatus(String token);
+    void hentOrdFraDR(String token);*/
 
     @WebMethod
-    void hentOrdFraDR(String token);
+    String epLogOn(String username, String password) throws UnirestException;
 
     @WebMethod
-    String logOn(String username, String password);
-
-    @WebMethod
-    void logOff (String token);
+    void epLogOff(String token);
 }

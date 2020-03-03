@@ -1,5 +1,7 @@
 package server;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.mashape.unirest.http.HttpResponse;
 import com.mashape.unirest.http.JsonNode;
 import com.mashape.unirest.http.Unirest;
@@ -22,8 +24,6 @@ import java.rmi.server.UnicastRemoteObject;
 import java.util.List;
 import java.util.UUID;
 
-
-
 import static io.javalin.apibuilder.ApiBuilder.path;
 
 @WebService(endpointInterface = "interfaces.IEntryPoint")
@@ -31,15 +31,18 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
 
     //Setting up the clientpart of this service.
     // Connection to the gameserver on Jacobs machine.
-    final String nameSpace = "http://server/";
-    final String gameLocalPart = "GalgeLogikImplService";
-    private String GAMEURL = "http://130.225.170.204:9898/galgespil?wsdl";
+    static final String nameSpace = "http://server/";
+    static final String gameLocalPart = "GalgeLogikImplService";
+    private static String gameIP = "130.225.170.204:9875";
+    private static String GAMEURL = "http://130.225.170.204:9898/galgespil?wsdl";
     private IGalgeLogik spil;
 
     private List<String> inGamers = new ArrayList<String>();
 
+
     public EntryPointImpl() throws MalformedURLException, RemoteException {
         super();
+
         URL gameurl = new URL(GAMEURL);
         QName gameQname = new QName(nameSpace, gameLocalPart);
         Service gameservice = Service.create(gameurl, gameQname);
@@ -48,7 +51,9 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
 
 
         //Setting up Javalin Endpoints
+
         Javalin restServer = Javalin.create().start(9875);
+
 
         //Til debugging or logging, should probably write to a file instead.
         restServer.before(ctx -> {
@@ -59,71 +64,124 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
                 .result("<html><body>Velkommen til Online-Galgeleg<br/>\n<br/>\n" +
                         "Du skulle tage at logge ind og spille med."));
         // Enten den her organisation
-        restServer.routes(() -> {
-            path("bogstaver", () -> {
-                restServer.get("/brugte/:token", ctx -> restBrugteBogstaver(ctx));
-                restServer.get("/antalforkerte/:token", ctx -> restAntalForkerteBogstaver(ctx));
-                restServer.get("/sidstekorrekt/:token", ctx -> restSidsteBogstavKorrekt(ctx));
-            });
-            path("ordet", () -> {
-                restServer.get("/:token",ctx -> restOrdet(ctx));
-                restServer.get("/synligt/:token", ctx -> restSynligtOrd(ctx));
 
-            });
-            path("spillet", () ->{
-               restServer.get("/vundet/:token",ctx -> restVundet(ctx));
-               restServer.get("/tabt/:token", ctx -> restTabt(ctx));
-            });
-            //Ved ikke om dem her skal stå uden for routes..
-            restServer.get("/logoff/:token", ctx -> restLogOff(ctx));
-            restServer.post("logon/:username:password", ctx-> restLogOn(ctx));
-            restServer.post("/gaet/:token:letter", ctx -> restGaetBogstav(ctx));
+        restServer.post("bogstaver/gaet/", ctx -> restGaetBogstav(ctx));
+        restServer.get("bogstaver/brugte/", ctx -> restBrugteBogstaver(ctx));
+        restServer.get("bogstaver/antalforkerte/", ctx -> restAntalForkerteBogstaver(ctx));
+        restServer.get("bogstaver/ersidstekorrekt/", ctx -> restSidsteBogstavKorrekt(ctx));
+
+        restServer.get("ordet/", ctx ->  ctx.contentType("text/html; charset=utf-8")
+                        .result("<html><body>ordet<br/>\n<br/>\n" +
+                                "<href>http://"+gameIP+"/ord/  ordet der bliver spillet om</href><br/>\n</br>\n"+
+                                "<href>http://"
+
+                                ));
+
+        restServer.get("ordet/ord/", ctx -> restOrdet(ctx));
+        restServer.get("ordet/synligt/", ctx -> restSynligtOrd(ctx));
+
+
+        restServer.get("spillet/", ctx -> {
+            System.out.println("Du kan bruge:");
+            System.out.println("spillet/vundet");
+        });
+        restServer.get("spillet/vundet/", ctx -> restVundet(ctx));
+        restServer.get("spillet/tabt/", ctx -> restTabt(ctx));
+
+
+      /*  restServer.get("auth/", ctx -> {
+        });*/
+
+        restServer.post("auth/logoff/", ctx -> {
+            System.out.println("token: " + ctx.formParam("token"));
+            restLogOff(ctx);
+        });
+        restServer.post("auth/logon/", ctx -> {
+            System.out.println("username" + ctx.formParam("username") + "  password " + ctx.formParam("password"));
+            restLogOn(ctx);
         });
 
 
-        //Eller den her organisation
-        restServer.get("/:token/brugtebogstaver", ctx -> restBrugteBogstaver(ctx));
-        restServer.get("/:token/synligtOrd", ctx -> getSynligtOrd(ctx.pathParam("token")));
-        restServer.get("/:token/ordet", ctx -> getOrdet(ctx.pathParam("token")));
-        restServer.get("/:token/AntalForkerteBogstaver", ctx -> getAntalForkerteBogstaver(ctx.pathParam("token")));
-        restServer.get("/:token/sidsteBogstavKorrekt", ctx -> erSidsteBogstavKorrekt(ctx.pathParam("token")));
-        restServer.get("/:token/vundet", ctx -> erSpilletVundet(ctx.pathParam("token")));
-        restServer.get("/:token/tabt", ctx -> erSpilletTabt(ctx.pathParam("token")));
-        restServer.get("/:token/logoff", ctx -> logOff(ctx.pathParam("token")));
-        restServer.get("/logon/:username:password", ctx -> logOn(ctx.pathParam("username"), ctx.pathParam("password")));
-        restServer.post(":token/gaet/:letter", ctx -> gætBogstav(ctx.pathParam("token"), ctx.pathParam("letter")));
     }
 
+/*
+        //Eller den her organisation
+        restServer.get("/:token/brugtebogstaver", ctx ->{
+                    System.out.println("beforebrugtebogstaver" + ctx.pathParam("token"));
+                    restBrugteBogstaver(ctx);
+        });
+        restServer.get("/:token/synligtord", ctx -> {
+            System.out.println("before synligtord "+ ctx.pathParam("token"));
+            restSynligtOrd(ctx);
+
+        });
+        restServer.get("/:token/ordet", ctx -> {
+            System.out.println("Before ordet " + ctx.pathParam("token"));
+            restOrdet(ctx);
+        });
+        restServer.get("/:token/antalforkertebogstaver", ctx -> {
+            System.out.println("before antalforkertebogstaver "+ ctx.pathParam("token"));
+            restAntalForkerteBogstaver(ctx);
+        });
+        restServer.get("/:token/sidstebogstavkorrekt", ctx -> {
+            System.out.println("before sidsteBogstavKorrekt "+ ctx.pathParam("token"));
+            restSidsteBogstavKorrekt(ctx);
+        } );
+        restServer.get("/:token/vundet", ctx -> {
+            System.out.println("before vundet "+ ctx.pathParam("token"));
+            restVundet(ctx);
+        });
+        restServer.get("/:token/tabt", ctx -> {
+            System.out.println("before tabt "+ ctx.pathParam("token"));
+
+            restTabt(ctx);
+        });
+        restServer.get("/:token/logoff", ctx -> {
+            System.out.println("before logoff "+ ctx.pathParam("token"));
+
+            restLogOff(ctx);
+        });
+        restServer.get("/logon/:username/:password", ctx -> {
+            System.out.println("username " + ctx.pathParam("username") + " password: " + ctx.pathParam("password"));
+            restLogOn(ctx);
+        });
+        restServer.post("/:token/gaet/:letter", ctx -> {
+            System.out.println("token "+ ctx.pathParam("token") + "  letter"+ ctx.pathParam("letter"));
+            restGaetBogstav(ctx);
+        });
+        */
+
+
     //SOAP methods
-    public ArrayList<String> getBrugteBogstaver(String token) {
+    public ArrayList<String> epGetBrugteBogstaver(String token) {
         if (checkGamerToken(token)) {
             return spil.getBrugteBogstaver();
         }
         return null;
     }
 
-    public String getSynligtOrd(String token) {
+    public String epGetSynligtOrd(String token) {
         if (checkGamerToken(token)) {
             return spil.getSynligtOrd();
         }
         return null;
     }
 
-    public String getOrdet(String token) {
+    public String epGetOrdet(String token) {
         if (checkGamerToken(token)) {
             return spil.getOrdet();
         }
         return null;
     }
 
-    public int getAntalForkerteBogstaver(String token) {
+    public int epGetAntalForkerteBogstaver(String token) {
         if (checkGamerToken(token)) {
             return spil.getAntalForkerteBogstaver();
         }
         return -1;
     }
 
-    public int erSidsteBogstavKorrekt(String token) {
+    public int epErSidsteBogstavKorrekt(String token) {
         if (checkGamerToken(token)) {
             boolean janej;
             janej = spil.erSidsteBogstavKorrekt();
@@ -136,7 +194,7 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
             return -1;
     }
 
-    public int erSpilletVundet(String token) {
+    public int epErSpilletVundet(String token) {
         if (checkGamerToken(token)) {
             boolean janej;
             janej = spil.erSpilletVundet();
@@ -149,7 +207,7 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         return -1;
     }
 
-    public int erSpilletTabt(String token) {
+    public int epErSpilletTabt(String token) {
         if (checkGamerToken(token)) {
             boolean janej;
             janej = spil.erSpilletTabt();
@@ -162,13 +220,13 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         return -1;
     }
 
-    public void nulstil(String token) {
+    public void epNulstil(String token) {
         if (checkGamerToken(token)) {
             spil.nulstil();
         }
     }
 
-    public void gætBogstav(String token, String bogstav) {
+    public void epGætBogstav(String token, String bogstav) {
         if (checkGamerToken(token)) {
             spil.gætBogstav(bogstav);
         }
@@ -186,34 +244,43 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
         }
     }
 
-    public void logOff(String token) {
+    public void epLogOff(String token) {
         inGamers.remove(token);
     }
 
-    public String logOn(String username, String password) {
-        String token = null;
-        //VALIDATE THE USER AT OUR PYTHON AUTH SERVER.
+    public String epLogOn(String username, String password) throws UnirestException {
 
-        // if(validation(username, password) {
-        token = String.valueOf(UUID.randomUUID());
-        inGamers.add(token);
+        System.out.println("restLogon brugernavn: " + username + " password " + password);
+        String url = "http://130.225.170.204:8970/auth/";
+
+        String body = "{\"username\":\"" + username + "\",\"password\":\"" + password + "\"}";
+        System.out.println(body);
+
+        HttpResponse<JsonNode> response = Unirest.post(url)
+                .body(body)
+                .asJson();
+        JSONObject json = response.getBody().getObject();
+        System.out.println(json.toString());
+        String token = json.getString("token");
+
+        if (token != null) {
+            inGamers.add(token);
+        }
         return (token);
-        //}
-        //return "Du har ikke logget ind korrekt.";
     }
 
     private boolean checkGamerToken(String token) {
-        //return  inGamers.contains(token);
-        return true;
+        return inGamers.contains(token);
     }
 
     // REST methods
     private void restBrugteBogstaver(Context ctx) {
-        String token = getTokenFromCtx(ctx);
+        String token = ctx.queryParam("token");
+        System.out.println("restBrugteBogstaver token: " + token);
         List<String> brugteBogstaver;
-        brugteBogstaver = getBrugteBogstaver(token);
+        brugteBogstaver = epGetBrugteBogstaver(token);
         if (brugteBogstaver != null) {
-            ctx.json(brugteBogstaver);
+            ctx.result("Her er de brugte bogstaver ").json(brugteBogstaver);
         } else {
             //TODO depending on which REST organisation the feedback should be adapted
 
@@ -222,9 +289,10 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
     }
 
     private void restOrdet(Context ctx) {
-        String token = getTokenFromCtx(ctx);
+        String token = ctx.queryParam("token");
+        System.out.println("restOrdet token: " + token);
         String ordet;
-        ordet = getOrdet(token);
+        ordet = epGetOrdet(token);
         if (ordet != null) {
             ctx.json(ordet);
         } else {
@@ -235,12 +303,24 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
     }
 
     private void restSynligtOrd(Context ctx) {
+        String token = ctx.queryParam("token");
+        System.out.println("synligt ord token: " + token);
+        String synligtOrd;
+        synligtOrd=epGetSynligtOrd(token);
+        if(synligtOrd != null){
+            ctx.json(synligtOrd);
+        } else {
+            //TODO depending on which REST organisation the feedback should be adapted
+
+            ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /ordet/\\033[3mvalidToken\\033[0m");
+        }
 
     }
 
     private void restAntalForkerteBogstaver(Context ctx) {
-        String token = getTokenFromCtx(ctx);
-        int antal = getAntalForkerteBogstaver(token);
+        String token = ctx.queryParam("token");
+        System.out.println("restAntalForkerteBogstaver token: " + token);
+        int antal = epGetAntalForkerteBogstaver(token);
         if (antal > -1) {
             ctx.json(antal);
         } else {
@@ -251,8 +331,9 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
     }
 
     private void restSidsteBogstavKorrekt(Context ctx) {
-        String token = getTokenFromCtx(ctx);
-        int korrekt = erSidsteBogstavKorrekt(token);
+        String token = ctx.queryParam("token");
+        System.out.println("restSidsteBogstavKorrekt token: " + token);
+        int korrekt = epErSidsteBogstavKorrekt(token);
         //TODO clients skal håndtere en int -1=ikke valideret, 0=falsk, 1=true
         if (korrekt > -1) {
             ctx.json(korrekt);
@@ -264,8 +345,9 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
     }
 
     private void restVundet(Context ctx) {
-        String token = getTokenFromCtx(ctx);
-        int vundet = erSpilletVundet(token);
+        String token = ctx.queryParam("token");
+        System.out.println("restVundet token: " + token);
+        int vundet = epErSpilletVundet(token);
         if (vundet > -1) {
             ctx.json(vundet);
         } else {
@@ -275,8 +357,9 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
     }
 
     private void restTabt(Context ctx) {
-        String token = getTokenFromCtx(ctx);
-        int tabt = erSpilletTabt(token);
+        String token = ctx.queryParam("token");
+        System.out.println("resttabt token: " + token);
+        int tabt = epErSpilletTabt(token);
         if (tabt > -1) {
             ctx.json(tabt);
         } else {
@@ -286,11 +369,12 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
     }
 
     private void restGaetBogstav(Context ctx) {
-        String token = getTokenFromCtx(ctx);
-        String letter = ctx.pathParam("letter");
+        String token = ctx.formParam("token");
+        String letter = ctx.formParam("letter");
+        System.out.println("restLogoff token: " + token + " letter: " + letter);
         //TODO interface til gætBogstav skal returnere om det gik godt eller dårligt med token check.
-        if (checkGamerToken(token)){
-            gætBogstav(token, letter);
+        if (checkGamerToken(token)) {
+            epGætBogstav(token, letter);
         } else {
             //TODO depending on which REST organisation the feedback should be adapted
             ctx.status(401).result("Ikke Autoriseret. Du skal bruge en valideret token samt \n syntaksen /SidsteBogstavKorrekt/\\033[3mvalidToken\\033[0m");
@@ -298,19 +382,10 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
     }
 
     private void restLogOn(Context ctx) throws UnirestException {
-        String username = ctx.pathParam("username");
-        String password = ctx.pathParam("password");
-
-        String url = "http://130.225.170.204:8970/login";
-        HttpResponse<JsonNode> response = Unirest.get(url)
-                .routeParam("username",username) //routeParam because its a get Request
-                .routeParam("password", password)
-                .asJson();
-        JSONObject json = response.getBody().getObject();
-
-        String token = json.getString("token"); //TODO validate user
-
-        if(!token.equals(null)){
+        String username = ctx.formParam("username");
+        String password = ctx.formParam("password");
+        String token = epLogOn(username, password);
+        if (!token.equals(null)) {
             ctx.json(token);
         } else {
             //TODO depending on which REST organisation the feedback should be adapted
@@ -319,13 +394,11 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
     }
 
     private void restLogOff(Context ctx) {
-        String token = getTokenFromCtx(ctx);
-        logOff(token);
+        String token = ctx.formParam("token");
+        inGamers.remove(token);
+        System.out.println("restLogoff token: " + token);
+        epLogOff(token);
         ctx.status(200).result("Du er logget af spillet");
-    }
-
-    private String getTokenFromCtx(Context ctx) {
-        return ctx.pathParam("token");
     }
 }
 
