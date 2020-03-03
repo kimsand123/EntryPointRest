@@ -65,33 +65,43 @@ public class EntryPointImpl extends UnicastRemoteObject implements IEntryPoint {
                         "Du skulle tage at logge ind og spille med."));
         // Enten den her organisation
 
+
+        restServer.get("bogstaver/", ctx ->  ctx.contentType("text/html; charset=utf-8")
+                .result("<html><body>bogstaver/<br/>\n<br/>\n" +
+                        "<a href=\"http://"+gameIP+"/bogstaver/gaet/\">  HUSK \"token\":\"value\":\"letter\":\"value\" i body som formdata. Gætter på et bogstav<br/>\n</br>\n"+
+                        "<a href=\"http://"+gameIP+"/bogstaver/brugte/\">   HUSK \"token\":\"value\" i body som formdata. Returnerer de brugte bogstaver<br/>\n</br>\n"+
+                        "<a href=\"http://"+gameIP+"/bogstaver/antalforkerte/\">  HUSK \"token\":\"value\" i body som formdata. Returnerer antal forkerte gæt om<br/>\n</br>\n"+
+                        "<a href=\"http://"+gameIP+"/bogstaver/ersidstekorrekt/\">   HUSK \"token\":\"value\" i body som formdata. Returnerer om det sidste bogstav var korrekt <br/>\n</br>\n"
+                ));
         restServer.post("bogstaver/gaet/", ctx -> restGaetBogstav(ctx));
         restServer.get("bogstaver/brugte/", ctx -> restBrugteBogstaver(ctx));
         restServer.get("bogstaver/antalforkerte/", ctx -> restAntalForkerteBogstaver(ctx));
         restServer.get("bogstaver/ersidstekorrekt/", ctx -> restSidsteBogstavKorrekt(ctx));
 
         restServer.get("ordet/", ctx ->  ctx.contentType("text/html; charset=utf-8")
-                        .result("<html><body>ordet<br/>\n<br/>\n" +
-                                "<href>http://"+gameIP+"/ord/  ordet der bliver spillet om</href><br/>\n</br>\n"+
-                                "<href>http://"
-
+                        .result("<html><body>ordet/<br/>\n<br/>\n" +
+                                "<a href=\"http://"+gameIP+"/ordet/ord/\">  HUSK \"token\":\"value\" i body som formdata. Returnerer ordet der bliver spillet om<br/>\n</br>\n"+
+                                "<a href=\"http://"+gameIP+"/ordet/synligt/\">   HUSK \"token\":\"value\" i body som formdata. Returnerer det der er synligt af ordet indtil videre<br/>\n</br>\n"
                                 ));
-
         restServer.get("ordet/ord/", ctx -> restOrdet(ctx));
         restServer.get("ordet/synligt/", ctx -> restSynligtOrd(ctx));
 
-
-        restServer.get("spillet/", ctx -> {
-            System.out.println("Du kan bruge:");
-            System.out.println("spillet/vundet");
-        });
+        restServer.get("spillet/", ctx ->  ctx.contentType("text/html; charset=utf-8")
+                .result("<html><body>spillet/<br/>\n<br/>\n" +
+                        "<a href=\"http://"+gameIP+"/spillet/vundet/\">  HUSK \"token\":\"value\" i body som formdata. Returnerer om spillet er vundet<br/>\n</br>\n"+
+                        "<a href=\"http://"+gameIP+"/spillet/tabt/\">   HUSK \"token\":\"value\" i body som formdata. Returnerer om spillet er tabt<br/>\n</br>\n"
+                ));
         restServer.get("spillet/vundet/", ctx -> restVundet(ctx));
         restServer.get("spillet/tabt/", ctx -> restTabt(ctx));
 
 
       /*  restServer.get("auth/", ctx -> {
         });*/
-
+        restServer.get("auth/", ctx ->  ctx.contentType("text/html; charset=utf-8")
+                .result("<html><body>auth/<br/>\n<br/>\n" +
+                        "<a href=\"http://"+gameIP+"/auth/logon/\">  HUSK \"username\":\"value\",\"password\":\"value\" i body som formdata. Logger på spillet<br/>\n</br>\n"+
+                        "<a href=\"http://"+gameIP+"/auth/logoff/\">   HUSK \"token\":\"value\" i body som formdata. Logger af spillet<br/>\n</br>\n"
+                ));
         restServer.post("auth/logoff/", ctx -> {
             System.out.println("token: " + ctx.formParam("token"));
             restLogOff(ctx);
